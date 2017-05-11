@@ -32,12 +32,12 @@ def bin_spikes(spike_times, min_time=None, max_time=None, t_align="start"):
     rows = len(spike_times)
 
     if min_time is None:
-        min_time = int(min(np.floor(row[0]) for row in spike_times))
+        min_time = int(min(np.floor(row[0]) for row in spike_times if len(row)))
     else:
         min_time = int(1e3 * min_time)
 
     if max_time is None:
-        max_time = int(max(np.ceil(row[-1]) for row in spike_times))
+        max_time = int(max(np.ceil(row[-1]) for row in spike_times if len(row)))
     else:
         max_time = int(1e3 * max_time)
 

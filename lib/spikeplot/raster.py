@@ -9,12 +9,11 @@ def plot(spike_times, min_time=0.0, max_time=1.0, color="k"):
     """
 
     for i, spikes in enumerate(spike_times):
-        plt.vlines(spikes, i + 0.5, i + 1.5, color=color)
+        plt.vlines(spikes, i, i + 1.0, color=color)
 
     if min_time < 0.0:
-        plt.vlines([0.0], 0.5, len(spike_times) + 0.5, color="r", linestyle="--")
+        plt.vlines([0.0], 0.0, len(spike_times), color="r", linestyle="--")
 
-    plt.ylim(0.5, len(spike_times) + 0.5)
+    plt.ylim(0.0, len(spike_times))
     plt.xlim(min_time, max_time)
-    plt.yticks([])
 

@@ -11,8 +11,8 @@ def gaussian_convolver(std, n=3.0):
     n (float, default=3.0): number of stds to extend gaussian in each direction
 
     Output:
-    convolver (fn): function that takes an array, and convolves it with a gaussian,
-        returning the same sized array as before
+    convolver (fn): function that takes an array, and convolves it with a
+        gaussian, returning the same sized array as before
     """
     extend = n * np.floor(std)
     t = np.arange(-extend, extend + 1)
@@ -39,7 +39,8 @@ def exponential_convolver(tau, n=4.0):
     result = np.exp(-t / float(tau))
     exp = result / np.sum(result)
 
-    # need to cut off the end since full will extend the last exponential past the end
+    # need to cut off the end since full will extend the last exponential
+    # past the end
 
     return lambda d: np.convolve(d, exp, mode="full")[:d.size]
 
@@ -60,5 +61,6 @@ def conv(data, convolver, *convolver_args, **convolver_kwargs):
     convolved_data (N_samples, N_dim):
         array of datapoint coordinates after convolving
     """
-    return np.apply_along_axis(convolver(*convolver_args, **convolver_kwargs), 1, data)
+    return np.apply_along_axis(
+            convolver(*convolver_args, **convolver_kwargs), 1, data)
 

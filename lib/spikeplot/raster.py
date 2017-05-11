@@ -3,7 +3,7 @@ import matplotlib.pyplot as plt
 
 def plot(spike_times, min_time=0.0, max_time=1.0, color="k"):
     """Raster plot based on spike arrival times
-   
+
     Inputs:
     spike_times (list (length N_units) of arrays of spike arrival times)
     """

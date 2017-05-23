@@ -54,7 +54,7 @@ def unbias_templates(dataframe, templates, template_column, column):
     return temp_frame
 
 
-def compute_distance_to_templates(dataframe, template_column, rush=True, dist=euclidean_distances):
+def compute_distance_to_templates(dataframe, template_column, column, rush=True, dist=euclidean_distances):
     """
     Dataframe must come with column "selfless_template"
     """
@@ -73,8 +73,9 @@ def compute_distance_to_templates(dataframe, template_column, rush=True, dist=eu
         else:
             sampled = grouped.apply(lambda x: x.sample(n=1)).set_index(template_column)["selfless_template"]
             sampled.set_value(row[template_column], row["selfless_template"])
+            sampled = sampled.tolist()
             compute_distance_to_templates._rush_cache[row[template_column]] = sampled
-        distances.append(tuple(dist(np.array(row["psth"])[None, :], sampled.tolist())[0]))
+        distances.append(tuple(dist(np.array(row[column])[None, :], sampled)[0]))
 
     return np.array(distances, dtype=keys)
 

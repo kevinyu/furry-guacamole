@@ -14,7 +14,7 @@ def compute_templates(dataframe, template_column, column):
     Returns
     templates (pandas.DataFrame)
     """
-    grouped = dataframe.groupby(by=template_column)
+    grouped = dataframe.groupby(by=template_column, sort=True)
     keys = grouped.groups.keys()
 
     means = pd.Series([
@@ -53,7 +53,8 @@ def unbias_templates(dataframe, templates, template_column, column):
     return temp_frame
 
 
-def compute_distance_to_templates(dataframe, template_column, dist=euclidean_distances):
+_rush_savings = {}
+def compute_distance_to_templates(dataframe, template_column, rush=True, dist=euclidean_distances):
     """
     Dataframe must come with column "selfless_template"
     """
@@ -61,12 +62,18 @@ def compute_distance_to_templates(dataframe, template_column, dist=euclidean_dis
         raise Exception("Column 'selfless_template' not in dataframe; "
                 "Use the fns compute_templates and unbias_templates first")
 
-    grouped = dataframe.groupby(by=template_column)
+    grouped = dataframe.groupby(by=template_column, sort=True)
     distances = []
     for idx, row in dataframe.iterrows():
         # FIXME: this step is fairly slow; can maybe do this better?
-        sampled = grouped.apply(lambda x: x.sample(n=1)).set_index(template_column)["selfless_template"]
-        sampled.set_value(row["stim"], row["selfless_template"])
-        distances.append(euclidean_distances(row["psth"][None, :], sampled.tolist())[0])
+        # If we are "rushing", don't resample every time
+        if rush and row["stim"] in _rush_savings:
+            sampled = _rush_savings[row["stim"]]
+        else:
+            sampled = grouped.apply(lambda x: x.sample(n=1)).set_index(template_column)["selfless_template"]
+            sampled.set_value(row["stim"], row["selfless_template"])
+            _rush_savings[row["stim"]] = sampled
+        distances.append(dist(np.array(row["psth"])[None, :], sampled.tolist())[0])
 
+    # FIXME: need to make this a structured array so that the columns are labeled by the template label
     return np.array(distances)

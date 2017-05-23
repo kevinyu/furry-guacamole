@@ -105,7 +105,7 @@ class SessionDataLoader(object):
                 for trial_num, trial_file in unit_file[self._call][stim_id].items():
                     units.append((electrode_id, unit_id))
                     stim_ids.append(stim_id)
-                    call_types.append(call_type)
+                    call_types.append(call_type or "None")
                     stim_types.append(stim_type)
                     trial_ids.append(trial_num)
 

@@ -45,6 +45,7 @@ def unbias_templates(dataframe, templates, template_column, column):
 
     temp_frame = dataframe.join(templates, on=template_column, rsuffix="_template")
 
+    # FIXME: this only subtracts 1 off of each... we want to even out n
     temp_frame["selfless_template"] = (
             np.array(temp_frame[new_col_name].tolist()) -
             np.array(temp_frame[column].tolist()) * (1.0 / temp_frame["n"][:, None])
@@ -53,7 +54,6 @@ def unbias_templates(dataframe, templates, template_column, column):
     return temp_frame
 
 
-_rush_savings = {}
 def compute_distance_to_templates(dataframe, template_column, rush=True, dist=euclidean_distances):
     """
     Dataframe must come with column "selfless_template"
@@ -64,16 +64,45 @@ def compute_distance_to_templates(dataframe, template_column, rush=True, dist=eu
 
     grouped = dataframe.groupby(by=template_column, sort=True)
     distances = []
+    keys = list([(g[0].encode("utf-8"), np.float64) for g in grouped])
     for idx, row in dataframe.iterrows():
         # FIXME: this step is fairly slow; can maybe do this better?
         # If we are "rushing", don't resample every time
-        if rush and row["stim"] in _rush_savings:
-            sampled = _rush_savings[row["stim"]]
+        if rush and row[template_column] in compute_distance_to_templates._rush_cache:
+            sampled = compute_distance_to_templates._rush_cache[row[template_column]]
         else:
             sampled = grouped.apply(lambda x: x.sample(n=1)).set_index(template_column)["selfless_template"]
-            sampled.set_value(row["stim"], row["selfless_template"])
-            _rush_savings[row["stim"]] = sampled
-        distances.append(dist(np.array(row["psth"])[None, :], sampled.tolist())[0])
+            sampled.set_value(row[template_column], row["selfless_template"])
+            compute_distance_to_templates._rush_cache[row[template_column]] = sampled
+        distances.append(tuple(dist(np.array(row["psth"])[None, :], sampled.tolist())[0]))
 
-    # FIXME: need to make this a structured array so that the columns are labeled by the template label
-    return np.array(distances)
+    return np.array(distances, dtype=keys)
+
+compute_distance_to_templates._rush_cache = {}
+compute_distance_to_templates.clear_cache = lambda: compute_distance_to_templates._rush_cache.clear()
+
+
+def decode(dataframe, distances, column):
+    """Compute index of nearest template for each datapoint
+
+    Parameters
+    ----------
+    dataframe : pd.DataFrame (n_datapoints, ...)
+        Dataframe with a Series `column` corresponding to the
+        category label over which to decode
+    distances : np.ndarray (n_datapoints, n_categories)
+        Distance of each datapoint to templates for each category
+    column : string
+        Name of column with category label
+
+    Returns
+    -------
+    predicted : np.ndarray (n_datapoints)
+        Decoded values (or indices if `labels` not specified)
+    """
+    nearest_templates = np.argmin(np.array(distances.tolist()), axis=1)
+    results = []
+    for idx in nearest_templates:
+        results.append(distances.dtype.names[idx])
+
+    return np.array(results)

@@ -43,12 +43,15 @@ def unbias_templates(dataframe, templates, template_column, column):
                 "drop it before calling this fn using "
                 "df.drop('{0}', 1, inplace=True)".format(new_col_name))
 
+    # Each datapoint is lined up with the template for its own class
     temp_frame = dataframe.join(templates, on=template_column, rsuffix="_template")
 
     # FIXME: this only subtracts 1 off of each... we want to even out n technically
+    # For each datapoint, a template is computed with itself subtracted off
+    n = temp_frame["n"][:, None]
     temp_frame["selfless_template"] = (
-            np.array(temp_frame[new_col_name].tolist()) -
-            np.array(temp_frame[column].tolist()) * (1.0 / temp_frame["n"][:, None])
+        (np.array(temp_frame[new_col_name].tolist()) * n - np.array(temp_frame[column].tolist())) /
+        (n - 1)
     ).tolist()
 
     return temp_frame

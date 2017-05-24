@@ -1,4 +1,7 @@
 data/
+data
+outputs/
+outputs
 src/config.py
 
 # Byte-compiled / optimized / DLL files

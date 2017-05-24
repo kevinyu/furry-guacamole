@@ -25,6 +25,7 @@ from template_decoding import (
     compute_distance_to_templates,
     compute_templates,
     decode,
+    get_plotty_lines,
     unbias_templates
 )
 
@@ -130,22 +131,32 @@ if __name__ == "__main__":
             unit_data["dims"][-1] = int((config.MAX_TIME - config.MIN_TIME) * 1e3)
         unit_data["mi"] = []
         unit_data["mi_ctrl"] = []
+        unit_data["acc"] = []
+        unit_data["acc_ctrl"] = []
 
         for dim in config.DIMS:
             # dim == 0 signifies to not do the initial dimensionality reduction
             print("Analyzing Unit {}, {} dims".format(unit, dim or "Full"))
             conf = decode_after_pca(unit_table, template_column=args.column, ndim=dim)
             unit_data["mi"].append(confusion.mutual_information(conf))
+            unit_data["acc"].append(confusion.accuracy(conf))
 
             # Do a second trial with shuffled labels to get an upper bound on the information bias
             unit_table["shuffled_label"] = unit_table[args.column].sample(frac=1).tolist()
             conf_ctrl = decode_after_pca(unit_table, template_column="shuffled_label", ndim=dim)
             unit_data["mi_ctrl"].append(confusion.mutual_information(conf_ctrl))
+            unit_data["acc_ctrl"].append(confusion.accuracy(conf))
 
         np.save(filename_base, unit_data)
 
-        plt.figure(figsize=(9, 8))
-        plt.imshow(conf, vmin=0.0, vmax=1.0, cmap="hot")
+        barriers, labels, label_posititions = get_plotty_lines(unit_table)
+        plt.figure(figsize=(11, 10))
+        plt.pcolormesh(conf, vmin=0.0, vmax=1.0, cmap="hot")
+        plt.hlines(barriers, 0, 130, color="red", linestyles="--", alpha=0.5)
+        plt.vlines(barriers, 0, 130, color="red", linestyles="--", alpha=0.5)
+        plt.xticks(label_posititions, labels)
+        plt.yticks(label_posititions, labels)
         plt.colorbar()
         plt.title("Dim {}".format(dim))
+
         plt.savefig(filename_base, format="png", dpi=200)

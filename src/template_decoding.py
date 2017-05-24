@@ -107,3 +107,18 @@ def decode(dataframe, distances, column):
         results.append(distances.dtype.names[idx])
 
     return np.array(results)
+
+
+def get_plotty_lines(table):
+    """Return parameters for plotting the separation between
+    call types in the confusion matrix
+    """
+    group_sizes = (table
+        .groupby(by=["call_type", "stim"])
+        .size()
+        .groupby(by="call_type")
+        .count())
+    labels = group_sizes.index
+    barriers = group_sizes.cumsum()
+    label_positions = group_sizes / 2.0 + barriers.shift(1).fillna(0)
+    return barriers, labels, label_positions

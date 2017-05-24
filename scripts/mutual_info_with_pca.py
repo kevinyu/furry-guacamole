@@ -67,10 +67,11 @@ def decode_after_pca(unit_table, template_column="stim", ndim=2):
     if "resp_template" in unit_table: unit_table.drop("resp_template", 1, inplace=True)
     unit_table = unbias_templates(unit_table, templates, template_column, "resp")
 
+    # for some reason need to do this sorting here or else
+    # the predicted stims will be in the wrong order
+    unit_table = unit_table.sort_values(["call_type", "stim"])
     compute_distance_to_templates.clear_cache()
     distances = compute_distance_to_templates(unit_table, template_column, "resp")
-
-    unit_table = unit_table.sort_values(["call_type", "stim"])
 
     actual = unit_table[template_column]
     predicted = decode(unit_table, distances, template_column)

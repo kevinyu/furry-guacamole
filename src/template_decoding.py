@@ -14,7 +14,7 @@ def compute_templates(dataframe, template_column, column):
     Returns
     templates (pandas.DataFrame)
     """
-    grouped = dataframe.groupby(by=template_column, sort=True)
+    grouped = dataframe.groupby(by=template_column)
     keys = grouped.groups.keys()
 
     means = pd.Series([
@@ -45,7 +45,7 @@ def unbias_templates(dataframe, templates, template_column, column):
 
     temp_frame = dataframe.join(templates, on=template_column, rsuffix="_template")
 
-    # FIXME: this only subtracts 1 off of each... we want to even out n
+    # FIXME: this only subtracts 1 off of each... we want to even out n technically
     temp_frame["selfless_template"] = (
             np.array(temp_frame[new_col_name].tolist()) -
             np.array(temp_frame[column].tolist()) * (1.0 / temp_frame["n"][:, None])
@@ -62,7 +62,7 @@ def compute_distance_to_templates(dataframe, template_column, column, rush=True,
         raise Exception("Column 'selfless_template' not in dataframe; "
                 "Use the fns compute_templates and unbias_templates first")
 
-    grouped = dataframe.groupby(by=template_column, sort=True)
+    grouped = dataframe.groupby(by=template_column)
     distances = []
     keys = list([(g[0].encode("utf-8"), np.float64) for g in grouped])
     for idx, row in dataframe.iterrows():

@@ -9,6 +9,8 @@ $ python scripts/mutual_info_with_pca.py --bird YelBlu6903F --site 1 --column st
 import argparse
 import os
 
+import matplotlib
+matplotlib.use("Agg")
 import matplotlib.pyplot as plt
 import numpy as np
 from sklearn.decomposition import PCA
@@ -28,6 +30,31 @@ from template_decoding import (
 
 
 def decode_after_pca(unit_table, template_column="stim", ndim=2):
+    """Generate confusion matrix after running pca on data
+
+    Applies PCA on the psth column of the dataset and generates
+    a confusion matrix using nearest template decoding.
+
+    Modifies the input dataframe by adding a new column called "resp"
+    that represents the "psth" in a lower dimensional space (PCA)
+
+    Parameters
+    ----------
+    unit_table : pd.DataFrame (n_datapoints, ... )
+        Dataframe with a Series `template_column` indicating the
+        category being decoded, and a Series "psth" for the response
+        data
+    template_column : string (default="stim")
+        Name of column containing category labels
+    ndim : int (default=2)
+        Number of principal components to keep on PCA step
+
+    Returns
+    -------
+    confusion_matrix : np.ndarray (n_stims, n_stims)
+        Confusion matrix normalized so that each row sums to 1
+        (i.e. represents P(predicted stim | actual stim))
+    """
     if ndim:
         pca = PCA(n_components=ndim)
         # save the reduced representation of responses to "resp" column
@@ -94,17 +121,25 @@ if __name__ == "__main__":
         filename_base = os.path.join(output_dir, "{}_{}_{}_e{}_u{}".format(args.bird, args.site, args.column, *unit))
 
         unit_table = unit_table.copy()
+
+        # Dictionary of data to be saved into .npy file
         unit_data = {}
         unit_data["dims"] = config.DIMS
+        if config.DIMS[-1] is None:
+            unit_data["dims"][-1] = int((config.MAX_TIME - config.MIN_TIME) * 1e3)
         unit_data["mi"] = []
         unit_data["mi_ctrl"] = []
+
         for dim in config.DIMS:
-            print("Analyzing Unit {}, {} dims".format(unit, dim))
+            # dim == 0 signifies to not do the initial dimensionality reduction
+            print("Analyzing Unit {}, {} dims".format(unit, dim or "Full"))
             conf = decode_after_pca(unit_table, template_column=args.column, ndim=dim)
             unit_data["mi"].append(confusion.mutual_information(conf))
+
+            # Do a second trial with shuffled labels to get an upper bound on the information bias
             unit_table["shuffled_label"] = unit_table[args.column].sample(frac=1).tolist()
-            conf = decode_after_pca(unit_table, template_column="shuffled_label", ndim=dim)
-            unit_data["mi_ctrl"].append(confusion.mutual_information(conf))
+            conf_ctrl = decode_after_pca(unit_table, template_column="shuffled_label", ndim=dim)
+            unit_data["mi_ctrl"].append(confusion.mutual_information(conf_ctrl))
 
         np.save(filename_base, unit_data)
 

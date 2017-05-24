@@ -64,7 +64,7 @@ if __name__ == "__main__":
         plt.plot(data["dims"], data["mi"])
         plt.plot(data["dims"], data["mi_ctrl"])
         plt.xlim(1, 40)
-        plt.ylim(0, 6)
+        plt.ylim(0, 6.5)
         plt.text(30, 0.3, get_name(filename), fontsize=6)
         plt.yticks([0, 3, 6], ["", 3, 6], fontsize=6)
         plt.xticks([10, 20, 30, 40], [])

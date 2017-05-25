@@ -22,11 +22,11 @@ from data_loader import SessionDataLoader
 from spikes.filters import gaussian_filter, exp_filter
 from spikes.binning import bin_spikes
 from template_decoding import (
-    compute_distance_to_templates,
-    compute_templates,
+    compute_distances_to_templates,
     decode,
     get_plotty_lines,
-    unbias_templates
+    prepare,
+    template_selectors,
 )
 
 
@@ -63,21 +63,13 @@ def decode_after_pca(unit_table, template_column="stim", ndim=2):
     else:
         unit_table["resp"] = unit_table["psth"].tolist()
 
-    templates = compute_templates(unit_table, template_column, "resp")
+    selectors, categories = template_selectors(unit_table, "resp")
+    distances = compute_distances_to_templates(unit_table, selectors, "resp")
 
-    if "resp_template" in unit_table: unit_table.drop("resp_template", 1, inplace=True)
-    unit_table = unbias_templates(unit_table, templates, template_column, "resp")
+    predicted = decode(unit_table, distances, categories)
+    actual = unit_table.index
 
-    # for some reason need to do this sorting here or else
-    # the predicted stims will be in the wrong order
-    unit_table = unit_table.sort_values(["call_type", "stim"])
-    compute_distance_to_templates.clear_cache()
-    distances = compute_distance_to_templates(unit_table, template_column, "resp")
-
-    actual = unit_table[template_column]
-    predicted = decode(unit_table, distances, template_column)
-
-    return generate_confusion_matrix(actual, predicted, joint=False)
+    return generate_confusion_matrix(actual, predicted, categories, joint=False)
 
 
 def load_session(bird_name, session_num):
@@ -123,6 +115,7 @@ if __name__ == "__main__":
         filename_base = os.path.join(output_dir, "{}_{}_{}_e{}_u{}".format(args.bird, args.site, args.column, *unit))
 
         unit_table = unit_table.copy()
+        unit_table = prepare(unit_table, "stim")
 
         # Dictionary of data to be saved into .npy file
         unit_data = {}
@@ -142,7 +135,7 @@ if __name__ == "__main__":
             unit_data["acc"].append(confusion.accuracy(conf))
 
             # Do a second trial with shuffled labels to get an upper bound on the information bias
-            unit_table["shuffled_label"] = unit_table[args.column].sample(frac=1).tolist()
+            unit_table["psth"] = unit_table["psth"].sample(frac=1).tolist()
             conf_ctrl = decode_after_pca(unit_table, template_column="shuffled_label", ndim=dim)
             unit_data["mi_ctrl"].append(confusion.mutual_information(conf_ctrl))
             unit_data["acc_ctrl"].append(confusion.accuracy(conf))
@@ -152,8 +145,8 @@ if __name__ == "__main__":
         barriers, labels, label_posititions = get_plotty_lines(unit_table)
         plt.figure(figsize=(11, 10))
         plt.pcolormesh(conf, vmin=0.0, vmax=1.0, cmap="hot")
-        plt.hlines(barriers, 0, barriers[-1], color="red", linestyles="--", alpha=0.5)
-        plt.vlines(barriers, 0, barriers[-1], color="red", linestyles="--", alpha=0.5)
+        plt.hlines(barriers, 0, barriers[-1], color="white", linestyles=":", alpha=0.5)
+        plt.vlines(barriers, 0, barriers[-1], color="white", linestyles=":", alpha=0.5)
         plt.xticks(label_posititions, labels)
         plt.yticks(label_posititions, labels)
         plt.colorbar()

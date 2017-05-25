@@ -34,13 +34,12 @@ def template_selectors(dataframe, template_column):
 
 def compute_templates(dataframe, selectors, column, sample_n=None):
     # TODO here is where you could cache the selector result if youre in a hurry
-    _cache = {}
     def _select(dataframe, selector):
         key = tuple(selector)
-        if key in _cache:
-            return _cache[key]
-        _cache[key] = dataframe[selector]
-        return _cache[key]
+        if key in compute_templates._cache:
+            return compute_templates._cache[key]
+        compute_templates._cache[key] = dataframe[selector]
+        return compute_templates._cache[key]
 
     return np.array([
         np.array(
@@ -48,6 +47,9 @@ def compute_templates(dataframe, selectors, column, sample_n=None):
         ).mean(axis=0)
         for selector in selectors
     ])
+
+compute_templates._cache = {}
+compute_templates.clear_cache = lambda: compute_templates._cache.clear()
 
 
 def compute_distances_to_templates(
@@ -61,10 +63,12 @@ def compute_distances_to_templates(
         for selector in selectors])
 
     distance_arr = []
+    compute_templates.clear_cache()
     for row, selectors in zip(dataframe.itertuples(), template_selectors):
         templates = compute_templates(dataframe, selectors, column, sample_n)
         distances = dist(np.array(getattr(row, column))[None, :], templates)
         distance_arr.append(distances[0])
+    compute_templates.clear_cache()
 
     return np.array(distance_arr)
 

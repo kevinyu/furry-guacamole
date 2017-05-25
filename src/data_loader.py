@@ -116,10 +116,10 @@ class SessionDataLoader(object):
 
         return pd.DataFrame({
             "unit": pd.Series(units),
-            "stim": pd.Categorical(stim_ids),
-            "call_type": pd.Categorical(call_types),
-            "stim_type": pd.Categorical(stim_types),
-            "trial": pd.Categorical(trial_ids),
+            "stim": pd.Series(stim_ids),
+            "call_type": pd.Series(call_types),
+            "stim_type": pd.Series(stim_types),
+            "trial": pd.Series(trial_ids),
             "spike_times": pd.Series(spike_times)
         })
 

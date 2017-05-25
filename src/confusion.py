@@ -1,7 +1,7 @@
 import numpy as np
 
 
-def generate_confusion_matrix(actual, predicted, joint=True):
+def generate_confusion_matrix(actual, predicted, categories, joint=True):
     """Compute a confusion matrix from actual values and predicted values
     
     Params:
@@ -26,15 +26,13 @@ def generate_confusion_matrix(actual, predicted, joint=True):
      [0.0 1.0 0.0]
      [0.5 0.0 0.5]]
     """
-    labels = actual.unique()
-    lookup = dict((val, i) for i, val in enumerate(labels))
-    n = len(labels)
+    lookup = dict((val, i) for i, val in enumerate(categories))
+    n = len(categories)
 
     confusion_matrix = np.zeros((n, n))
     for a, p in zip(actual, predicted):
         a_i = lookup[a]
-        p_i = lookup[p]
-        # FIXME: must handle the case of ties
+        p_i = map(lookup.get, p)
         try:
             tied = len(p)
         except:

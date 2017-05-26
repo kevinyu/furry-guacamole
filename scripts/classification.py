@@ -69,16 +69,10 @@ if __name__ == "__main__":
 
         # Dictionary of data to be saved into .npy file
         unit_data = {}
-        unit_data["dims"] = config.DIMS
-        if config.DIMS[-1] is None:
-            unit_data["dims"][-1] = int((config.MAX_TIME - config.MIN_TIME) * 1e3)
-        unit_data["mi"] = []
-        unit_data["mi_ctrl"] = []
-        unit_data["acc"] = []
-        unit_data["acc_ctrl"] = []
 
         dims = filter(None, config.DIMS)  # exclude the full dimensionality
 
+        unit_data["dims"] = dims
         unit_data["lda_scores"] = []
         unit_data["qda_scores"] = []
         unit_data["rf_scores"] = []
@@ -98,6 +92,6 @@ if __name__ == "__main__":
             unit_data["rf_std"].append(result["rf_acc_std"] * 100.0)
 
         unit_data["n_classes"] = result["n_classes"]
-        unit_data["chance_level"] = result["chancel_level"] * 100.0
+        unit_data["chance_level"] = result["chance_level"] * 100.0
 
         np.save(filename_base, unit_data)

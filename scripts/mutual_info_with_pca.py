@@ -129,14 +129,15 @@ if __name__ == "__main__":
         unit_data["acc"] = []
         unit_data["acc_ctrl"] = []
 
+        # dim == 0 signifies to not do the initial dimensionality reduction
         for dim in config.DIMS:
-            # dim == 0 signifies to not do the initial dimensionality reduction
             print("Analyzing Unit {}, {} dims".format(unit, dim or "Full"))
             conf = decode_after_pca(unit_table, template_column=args.column, ndim=dim)
             unit_data["mi"].append(confusion.mutual_information(conf))
             unit_data["acc"].append(confusion.accuracy(conf))
 
-            # Do a second trial with shuffled labels to get an upper bound on the information bias
+        # Do a second trial with shuffled labels to get an upper bound on the information bias
+        for dim in config.DIMS:
             unit_table["psth"] = unit_table["psth"].sample(frac=1).tolist()
             conf_ctrl = decode_after_pca(unit_table, template_column=args.column, ndim=dim)
             unit_data["mi_ctrl"].append(confusion.mutual_information(conf_ctrl))

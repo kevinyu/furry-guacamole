@@ -140,7 +140,7 @@ if __name__ == "__main__":
             unit_table["psth"] = unit_table["psth"].sample(frac=1).tolist()
             conf_ctrl = decode_after_pca(unit_table, template_column="shuffled_label", ndim=dim)
             unit_data["mi_ctrl"].append(confusion.mutual_information(conf_ctrl))
-            unit_data["acc_ctrl"].append(confusion.accuracy(conf))
+            unit_data["acc_ctrl"].append(confusion.accuracy(conf_ctrl))
 
         np.save(filename_base, unit_data)
 

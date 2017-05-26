@@ -52,9 +52,13 @@ def decode_after_pca(unit_table, template_column="stim", ndim=2):
 
     Returns
     -------
-    confusion_matrix : np.ndarray (n_stims, n_stims)
-        Confusion matrix normalized so that each row sums to 1
-        (i.e. represents P(predicted stim | actual stim))
+    actual : list (n_datapoints)
+        Each element is a string label for the datapoint
+    predicted : list (n_datapoints)
+        Each element is a list of the decoded values
+        It is a list because there can be ties
+    categories : list (n_categories)
+        An ordered list of the categories being decoded
     """
     if ndim:
         pca = PCA(n_components=ndim)
@@ -69,7 +73,7 @@ def decode_after_pca(unit_table, template_column="stim", ndim=2):
     predicted = decode(unit_table, distances, categories)
     actual = unit_table.index
 
-    return generate_confusion_matrix(actual, predicted, categories, joint=False)
+    return actual, predicted, categories
 
 
 def load_session(bird_name, session_num):
@@ -120,39 +124,60 @@ if __name__ == "__main__":
         unit_table = prepare(unit_table, "stim")
 
         # Dictionary of data to be saved into .npy file
-        unit_data = {}
-        unit_data["dims"] = config.DIMS
+        unit_data = {
+            "unit": unit,
+            "dims": [],
+            "normal": {
+                "labels": [],
+                "predicted": [],
+                "categories": [],
+                "mi": [],
+                "acc": [],
+            },
+            "shuffled": {
+                "labels": [],
+                "predicted": [],
+                "categories": [],
+                "mi": [],
+                "acc": [],
+            },
+            "plotting": {
+                "category_barriers": [],
+                "category_labels": [],
+                "label_positions": [],
+            }
+        }
+
+        unit_data["dims"] = config.DIMS[:]
         if config.DIMS[-1] is None:
             unit_data["dims"][-1] = int((config.MAX_TIME - config.MIN_TIME) * 1e3)
-        unit_data["mi"] = []
-        unit_data["mi_ctrl"] = []
-        unit_data["acc"] = []
-        unit_data["acc_ctrl"] = []
 
         # dim == 0 signifies to not do the initial dimensionality reduction
         for dim in config.DIMS:
             print("Analyzing Unit {}, {} dims".format(unit, dim or "Full"))
-            conf = decode_after_pca(unit_table, template_column=args.column, ndim=dim)
-            unit_data["mi"].append(confusion.mutual_information(conf))
-            unit_data["acc"].append(confusion.accuracy(conf))
+            actual, predicted, categories = decode_after_pca(unit_table, template_column=args.column, ndim=dim)
+            conf = generate_confusion_matrix(actual, predicted, categories)
+            unit_data["normal"]["labels"].append(actual)
+            unit_data["normal"]["predicted"].append(predicted)
+            unit_data["normal"]["categories"].append(categories)
+            unit_data["normal"]["mi"].append(confusion.mutual_information(conf))
+            unit_data["normal"]["acc"].append(confusion.accuracy(conf))
 
         # Do a second trial with shuffled labels to get an upper bound on the information bias
         for dim in config.DIMS:
             unit_table["psth"] = unit_table["psth"].sample(frac=1).tolist()
-            conf_ctrl = decode_after_pca(unit_table, template_column=args.column, ndim=dim)
-            unit_data["mi_ctrl"].append(confusion.mutual_information(conf_ctrl))
-            unit_data["acc_ctrl"].append(confusion.accuracy(conf_ctrl))
+            actual, predicted, categories = decode_after_pca(unit_table, template_column=args.column, ndim=dim)
+            conf_ctrl = generate_confusion_matrix(actual, predicted, categories)
+            unit_data["shuffled"]["labels"].append(actual)
+            unit_data["shuffled"]["predicted"].append(predicted)
+            unit_data["shuffled"]["categories"].append(categories)
+            unit_data["shuffled"]["mi"].append(confusion.mutual_information(conf_ctrl))
+            unit_data["shuffled"]["acc"].append(confusion.accuracy(conf_ctrl))
+
+        barriers, labels, label_positions = get_plotty_lines(unit_table)
+
+        unit_data["plotting"]["category_barriers"] = barriers
+        unit_data["plotting"]["category_labels"] = labels
+        unit_data["plotting"]["label_positions"] = label_positions
 
         np.save(filename_base, unit_data)
-
-        barriers, labels, label_posititions = get_plotty_lines(unit_table)
-        plt.figure(figsize=(11, 10))
-        plt.pcolormesh(conf, vmin=0.0, vmax=1.0, cmap="hot")
-        plt.hlines(barriers, 0, barriers[-1], color="white", linestyles=":", alpha=0.5)
-        plt.vlines(barriers, 0, barriers[-1], color="white", linestyles=":", alpha=0.5)
-        plt.xticks(label_posititions, labels)
-        plt.yticks(label_posititions, labels)
-        plt.colorbar()
-        plt.title("Dim {}".format(dim))
-
-        plt.savefig(filename_base, format="png", dpi=200)

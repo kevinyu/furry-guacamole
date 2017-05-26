@@ -47,7 +47,8 @@ if __name__ == "__main__":
     output_dir = os.path.join(config.OUTPUT_DIR, "plot_mutual_info_with_pca")
     if not os.path.exists(output_dir):
         os.makedirs(output_dir)
-    save_filename = os.path.join(output_dir, "{}_{}_{}".format(args.bird, args.site, args.column))
+    mi_filename = os.path.join(output_dir, "{}_{}_{}_mi".format(args.bird, args.site, args.column))
+    acc_filename = os.path.join(output_dir, "{}_{}_{}_acc".format(args.bird, args.site, args.column))
 
     read_dir = os.path.join(config.OUTPUT_DIR, "mutual_info_with_pca")
     filename_matcher = os.path.join(read_dir, "{}_{}_{}_e*_u*.npy".format(args.bird, args.site, args.column))
@@ -63,8 +64,8 @@ if __name__ == "__main__":
     for i, filename in enumerate(sorted(files)):
         data = np.load(filename)[()]
         plt.subplot(width, height, i+1)
-        plt.plot(data["dims"], data["mi"])
-        plt.plot(data["dims"], data["mi_ctrl"])
+        plt.plot(data["dims"], data["normal"]["mi"])
+        plt.plot(data["dims"], data["shuffled"]["mi"])
         plt.xlim(1, 40)
         plt.ylim(0, 6.5)
         plt.text(30, 0.3, get_name(filename), fontsize=6)
@@ -72,6 +73,32 @@ if __name__ == "__main__":
         plt.xticks([10, 20, 30, 40], [])
 
     if args.savefig:
-        plt.savefig(save_filename, format="png", dpi=200)
+        plt.savefig(mi_filename, format="png", dpi=200)
+    else:
+        plt.show()
+
+    plt.figure(figsize=(2 * width, height))
+    for i, filename in enumerate(sorted(files)):
+        data = np.load(filename)[()]
+        plt.subplot(width, height, i+1)
+        plt.plot(data["dims"], np.array(data["normal"]["acc"]) * 100)
+        plt.plot(data["dims"], np.array(data["shuffled"]["acc"]) * 100)
+        plt.hlines(
+                100.0 / len(data["normal"]["categories"][0]),
+                0,
+                40,
+                color="red",
+                linestyle=":")
+        plt.xlim(1, 40)
+        plt.ylim(0, 60)
+        plt.text(5, 45, get_name(filename), fontsize=6)
+        plt.yticks(
+                [0, 10, 20, 30, 40, 50, 60],
+                ["0", "", "", "", "", "50%", ""],
+                fontsize=6)
+        plt.xticks([10, 20, 30, 40], [])
+
+    if args.savefig:
+        plt.savefig(acc_filename, format="png", dpi=200)
     else:
         plt.show() 

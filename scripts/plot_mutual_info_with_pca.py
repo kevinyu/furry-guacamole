@@ -18,6 +18,8 @@ def get_subplot_sizes(n):
     """
     width = int(np.sqrt(n))
     height = width if width ** 2 == n else width + 1
+    if width * height < n:
+        width += 1
     return width, height
 
 

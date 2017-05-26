@@ -138,7 +138,7 @@ if __name__ == "__main__":
 
             # Do a second trial with shuffled labels to get an upper bound on the information bias
             unit_table["psth"] = unit_table["psth"].sample(frac=1).tolist()
-            conf_ctrl = decode_after_pca(unit_table, template_column="shuffled_label", ndim=dim)
+            conf_ctrl = decode_after_pca(unit_table, template_column=args.column, ndim=dim)
             unit_data["mi_ctrl"].append(confusion.mutual_information(conf_ctrl))
             unit_data["acc_ctrl"].append(confusion.accuracy(conf_ctrl))
 

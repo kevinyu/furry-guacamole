@@ -105,6 +105,8 @@ if __name__ == "__main__":
 
     print("Loading data for {} at Site {}".format(args.bird, args.site))
     table = load_session(args.bird, args.site)
+    table = table[table["call_type"] != "None"]
+    table = table.copy()
 
     output_dir = os.path.join(config.OUTPUT_DIR, "mutual_info_with_pca")
     if not os.path.exists(output_dir):

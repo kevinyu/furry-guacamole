@@ -60,7 +60,7 @@ if __name__ == "__main__":
 
     width, height = get_subplot_sizes(len(files))
 
-    plt.figure(figsize=(2 * width, height))
+    plt.figure(figsize=(2 * width, 1.2 * height))
     for i, filename in enumerate(sorted(files)):
         data = np.load(filename)[()]
         plt.subplot(width, height, i+1)
@@ -68,16 +68,17 @@ if __name__ == "__main__":
         plt.plot(data["dims"], data["shuffled"]["mi"])
         plt.xlim(1, 40)
         plt.ylim(0, 6.5)
-        plt.text(30, 0.3, get_name(filename), fontsize=6)
+        plt.text(39, 0.3, get_name(filename), fontsize=10, alpha=0.3, horizontalalignment="right")
         plt.yticks([0, 3, 6], ["", 3, 6], fontsize=6)
-        plt.xticks([10, 20, 30, 40], [])
+        plt.xticks([10, 20, 30, 40], [10, 20, 30, 40], fontsize=6)
+    plt.tight_layout()
 
     if args.savefig:
         plt.savefig(mi_filename, format="png", dpi=200)
     else:
         plt.show()
 
-    plt.figure(figsize=(2 * width, height))
+    plt.figure(figsize=(2 * width, 1.2 * height))
     for i, filename in enumerate(sorted(files)):
         data = np.load(filename)[()]
         plt.subplot(width, height, i+1)
@@ -90,13 +91,14 @@ if __name__ == "__main__":
                 color="red",
                 linestyle=":")
         plt.xlim(1, 40)
-        plt.ylim(0, 60)
-        plt.text(5, 45, get_name(filename), fontsize=6)
+        plt.ylim(0, 100)
+        plt.text(2, 96, get_name(filename), fontsize=10, alpha=0.3, verticalalignment="top")
         plt.yticks(
-                [0, 10, 20, 30, 40, 50, 60],
-                ["0", "", "", "", "", "50%", ""],
+                np.arange(0, 110, 10),
+                ["0", "", "", "", "", "50%", "", "", "", "", "100%"],
                 fontsize=6)
-        plt.xticks([10, 20, 30, 40], [])
+        plt.xticks([10, 20, 30, 40], [10, 20, 30, 40], fontsize=6)
+    plt.tight_layout()
 
     if args.savefig:
         plt.savefig(acc_filename, format="png", dpi=200)

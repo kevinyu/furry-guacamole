@@ -121,7 +121,7 @@ if __name__ == "__main__":
         filename_base = os.path.join(output_dir, "{}_{}_{}_e{}_u{}".format(args.bird, args.site, args.column, *unit))
 
         unit_table = unit_table.copy()
-        unit_table = prepare(unit_table, "stim")
+        unit_table = prepare(unit_table, args.column)
 
         # Dictionary of data to be saved into .npy file
         unit_data = {

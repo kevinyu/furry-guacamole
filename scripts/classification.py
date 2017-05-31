@@ -10,10 +10,11 @@ import argparse
 import os
 
 import numpy as np
+from sklearn.decomposition import PCA
 
 import config
 from data_loader import SessionDataLoader
-from lda import discriminate
+from discriminant_analysis import lda, qda, rf, cross_validate
 from spikes.filters import gaussian_filter, exp_filter
 from spikes.binning import bin_spikes
 
@@ -42,6 +43,8 @@ def parse_args():
             help="Recording site number")
     parser.add_argument("-c", "--column", type=str, default=None,
             help="Category column (stim or call_type)")
+    parser.add_argument("-f", "--folds", type=int, default=10,
+            help="Number of stratified folds (default 10)")
 
     return parser.parse_args()
 
@@ -54,9 +57,6 @@ if __name__ == "__main__":
     table = table[table["call_type"] != "None"]
     table = table.copy()
 
-    X = np.array(table["psth"].tolist())
-    Y = np.array(table[args.column])
-
     output_dir = os.path.join(config.OUTPUT_DIR, "classification_lda_qda_rf")
     if not os.path.exists(output_dir):
         os.makedirs(output_dir)
@@ -66,6 +66,8 @@ if __name__ == "__main__":
         filename_base = os.path.join(output_dir, "{}_{}_{}_e{}_u{}".format(args.bird, args.site, args.column, *unit))
 
         unit_table = unit_table.copy()
+        X = np.array(unit_table["psth"].tolist())
+        Y = np.array(unit_table[args.column])
 
         # Dictionary of data to be saved into .npy file
         unit_data = {}
@@ -82,16 +84,22 @@ if __name__ == "__main__":
  
         for i, dim in enumerate(dims):
             print("Analyzing Unit {}, {} dims".format(unit, dim or "Full"))
-            result = discriminate(X, Y, folds=10, ndim=dim)
+            pca = PCA(n_components=dim)
+            X_reduced = pca.fit_transform(X)
 
-            unit_data["lda_scores"].append(result["lda_acc"] * 100.0)
-            unit_data["qda_scores"].append(result["qda_acc"] * 100.0)
-            unit_data["rf_scores"].append(result["rf_acc"] * 100.0)
-            unit_data["lda_std"].append(result["lda_acc_std"] * 100.0)
-            unit_data["qda_std"].append(result["qda_acc_std"] * 100.0)
-            unit_data["rf_std"].append(result["rf_acc_std"] * 100.0)
+            scores = cross_validate(X_reduced, Y, lda, args.folds)
+            unit_data["lda_scores"].append(np.mean(scores) * 100.0)
+            unit_data["lda_std"].append(np.std(scores) * 100.0)
 
-        unit_data["n_classes"] = result["n_classes"]
-        unit_data["chance_level"] = result["chance_level"] * 100.0
+            scores = cross_validate(X_reduced, Y, qda, args.folds)
+            unit_data["qda_scores"].append(np.mean(scores) * 100.0)
+            unit_data["qda_std"].append(np.std(scores) * 100.0)
+
+            scores = cross_validate(X_reduced, Y, lda, args.folds)
+            unit_data["rf_scores"].append(np.mean(scores) * 100.0)
+            unit_data["rf_std"].append(np.std(scores) * 100.0)
+
+        unit_data["n_classes"] = np.unique(Y).size
+        unit_data["chance_level"] = 100.0 / unit_data["n_classes"]
 
         np.save(filename_base, unit_data)
